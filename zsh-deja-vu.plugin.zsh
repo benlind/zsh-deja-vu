@@ -38,12 +38,28 @@ add-zsh-hook preexec _zsh_deja_vu_preexec
 
 # --- Query Functions ---
 
-# Shared helper to get filtered history for a directory
+##
+# _zsh_deja_vu_get_history_for_dir: Internal helper function that filters
+# history entries for a specific directory.
+#
+# Args:
+#   $1 - target_dir: The absolute path of the directory to filter for
+#
+# Returns:
+#   Commands that were run in the specified directory (without the path prefix)
+#
+# How it works:
+#   - History entries are stored in format "/path/to/dir:command"
+#   - This function searches for lines starting with the target directory
+#   - Returns just the command part, stripping the directory prefix
+##
 _zsh_deja_vu_get_history_for_dir() {
     local target_dir="$1"
     local prefix="${target_dir}:"
 
-    # Use awk to find and print matching lines, stripping the prefix
+    # Use awk to efficiently scan the history file for matching entries.
+    # Pattern matching: lines starting with the target directory path + ":"
+    # Output: strips the directory prefix, leaving only the command
     awk -v pfx="$prefix" '
         $0 ~ "^" pfx {
             print substr($0, length(pfx) + 1)
@@ -98,8 +114,12 @@ djvu() {
 ##
 # djvi: (Déjà Vu Interactive)
 #
-# Searches the command history for the *current directory* with fzf
-# and places the selected command into the command line buffer.
+# Opens an interactive fuzzy finder (fzf) showing commands that were run
+# in the *current directory only*. The selected command is placed into
+# the command line buffer for editing or execution.
+#
+# This function is designed to work as a ZLE widget, so it can be bound
+# to keyboard shortcuts (default: Ctrl+F).
 ##
 djvi() {
     if ! command -v fzf &>/dev/null; then
@@ -116,19 +136,23 @@ djvi() {
     local target_dir
     target_dir="$(pwd)"
 
-    # Get history for the current directory
+    # Fetch all commands that were run in the current directory
     local history_for_dir
     history_for_dir=$(_zsh_deja_vu_get_history_for_dir "$target_dir")
 
+    # If no history exists for this directory, notify the user and exit
     if [[ -z "$history_for_dir" ]]; then
         zle -R "zsh-deja-vu: No history for ."
         return 0
     fi
 
-    # Use fzf to select a command and populate the buffer.
+    # Open fzf with the filtered history
+    # --tac: reverses the list so most recent commands appear first
+    # --query="$LBUFFER": pre-fills search with current command line buffer
+    # The prompt shows the current directory name for context
     local selected_command
     local dir_name
-    dir_name=${PWD##*/}
+    dir_name=${PWD##*/}  # Extract just the directory name (not full path)
     selected_command=$(
         printf "%s\n" "$history_for_dir" | fzf --tac \
             --height ~40% \
@@ -136,7 +160,8 @@ djvi() {
             --query="$LBUFFER"
     )
 
-    # If a command was selected, update the buffer and redraw the line.
+    # If a command was selected (user didn't cancel with Esc), update the
+    # command line buffer and redraw the prompt with the selected command
     if [[ -n "$selected_command" ]]; then
         LBUFFER=$selected_command
         zle redisplay

@@ -1,5 +1,8 @@
 # zsh-deja-vu
 
+> **Fork Notice:** This is a personal fork of [justyntemme/zsh-deja-vu](https://github.com/justyntemme/zsh-deja-vu).
+> **Changes:** Modified `djvi` (interactive search) to only show commands from the current directory instead of all directories, making it more contextually relevant and consistent with `djvu`'s behavior.
+
 "That feeling you've run this command *here* before?"
 
 A Zsh plugin that logs and retrieves command history based on the directory it was run in. Never forget that complex `docker` or `git` command you ran in a project folder weeks ago.
@@ -11,7 +14,7 @@ A Zsh plugin that logs and retrieves command history based on the directory it w
 * **Logs commands with their directory:** Silently in the background.
 * **`djvu`**: A command to show history for the **current directory**, just like `history`.
 * **`djvu <path>`**: Lets you query the history for **any directory**.
-* **`djvi`**: An interactive **fuzzy finder** (using `fzf`) to search your *entire* directory history.
+* **`djvi`**: An interactive **fuzzy finder** (using `fzf`) to search command history for the **current directory**.
 * **Automatic Keybinding:** Binds `Ctrl+F` to the interactive search out of the box.
 
 ## Installation
@@ -79,7 +82,7 @@ A Zsh plugin that logs and retrieves command history based on the directory it w
 
 The plugin automatically binds `djvi` to `Ctrl+F`.
 
-Just press **`Ctrl+F`** to open the interactive fuzzy finder ("F" for "Find"). You can type to filter all commands from all directories.
+Just press **`Ctrl+F`** to open the interactive fuzzy finder ("F" for "Find"). You can type to filter commands that were run in the current directory.
 
 #### Overriding the Keybinding
 
