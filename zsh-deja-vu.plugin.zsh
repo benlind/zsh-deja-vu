@@ -142,29 +142,47 @@ djvi() {
 
     # If no history exists for this directory, notify the user and exit
     if [[ -z "$history_for_dir" ]]; then
-        zle -R "zsh-deja-vu: No history for ."
+        # Check if we're in a ZLE widget context (called via keybinding)
+        if [[ -n "$WIDGET" ]]; then
+            zle -R "zsh-deja-vu: No history for ."
+        else
+            printf "%s\n" "zsh-deja-vu: No history for ."
+        fi
         return 0
     fi
 
     # Open fzf with the filtered history
     # --tac: reverses the list so most recent commands appear first
-    # --query="$LBUFFER": pre-fills search with current command line buffer
+    # --query: pre-fills search with current command line buffer (if in ZLE)
     # The prompt shows the current directory name for context
     local selected_command
     local dir_name
     dir_name=${PWD##*/}  # Extract just the directory name (not full path)
+
+    # Build fzf command with optional query parameter
+    local fzf_query=""
+    if [[ -n "$WIDGET" ]]; then
+        fzf_query="$LBUFFER"
+    fi
+
     selected_command=$(
         printf "%s\n" "$history_for_dir" | fzf --tac \
             --height ~40% \
             --prompt="History for ./$dir_name> " \
-            --query="$LBUFFER"
+            --query="$fzf_query"
     )
 
     # If a command was selected (user didn't cancel with Esc), update the
-    # command line buffer and redraw the prompt with the selected command
+    # command line buffer. Handle differently based on whether we're in ZLE.
     if [[ -n "$selected_command" ]]; then
-        LBUFFER=$selected_command
-        zle redisplay
+        if [[ -n "$WIDGET" ]]; then
+            # Called via keybinding: update buffer and redisplay
+            LBUFFER=$selected_command
+            zle redisplay
+        else
+            # Called as regular command: push to buffer for next prompt
+            print -z "$selected_command"
+        fi
     fi
 }
 
